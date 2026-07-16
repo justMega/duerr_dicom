@@ -1,0 +1,6 @@
+ref/
+out/
+example/
+__pycache__/
+.venv/
+converted.txt
