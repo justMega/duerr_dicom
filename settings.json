@@ -1,0 +1,12 @@
+{
+    "paths": {
+        "search_path": "ref",
+        "out_path": "out",
+        "converted_name": "converted.txt"
+    },
+    "pacs": {
+        "pacs_ip": "192.168.10.30",
+        "pacs_port": 4242,
+        "pacs_ae_title": "ORTHANC"
+    }
+}

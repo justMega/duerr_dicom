@@ -4,13 +4,13 @@ from pydicom.uid import (
     ExplicitVRLittleEndian,
     SecondaryCaptureImageStorage,
     generate_uid,
+    DigitalXRayImageStorageForPresentation
 )
 import datetime
 from PIL import Image
 
 
-def convert2dicom(path, out_path, file_name):
-    print(file_name)
+def get_meta_data(path, file_name):
     meta_data = dict()
     with open(f"{path}/{file_name}.im0", errors="replace") as f:
         lines = f.readlines()
@@ -23,6 +23,15 @@ def convert2dicom(path, out_path, file_name):
             else:
                 tmp = line.split("=", 1)
                 current_dict[tmp[0]] = tmp[1]
+    return meta_data
+
+def get_datetime(meta_data):
+    return datetime.datetime.strptime(
+        meta_data["ImageUserData"]["ImgCreateDateTimeString"].replace(". ", "."), "%d.%m.%Y %H:%M:%S"
+    )
+ 
+
+def convert2dicom(path, out_path, file_name, meta_data, study_instanceUID= None):
     # pprint.pprint(meta_data)
     # pprint.pprint(meta_data["ImageOperations"])
 
@@ -47,23 +56,25 @@ def convert2dicom(path, out_path, file_name):
 
     # Patient Information
     patient = meta_data["ImageUserData"]
-
-    ds.PatientName = f"{patient['PatVName']}^{patient['PatNName']}"
+    name = f"{patient['PatNName']}^{patient['PatVName']}"
+    ds.PatientName = name
     ds.PatientID = patient["PatPNR"]
     ds.PatientSex = patient["PatSex"]
 
     # Study information
-    ds.StudyInstanceUID = generate_uid()
+    if study_instanceUID is None:
+        study_instanceUID = generate_uid()
+    ds.StudyInstanceUID = study_instanceUID
     ds.SeriesInstanceUID = generate_uid()
     ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
-
+    ds.SOPClassUID = DigitalXRayImageStorageForPresentation
+    ds.StudyDescription = "Dental Examination"
     ds.Modality = "DX"
     ds.ImageType = ["ORIGINAL", "PRIMARY", "DENTAL"]
+    ds.InstitutionName = patient["PracName"]
 
     # Date and Time
-    dt = datetime.datetime.strptime(
-        patient["ImgCreateDateTimeString"].replace(". ", "."), "%d.%m.%Y %H:%M:%S"
-    )
+    dt = get_datetime(meta_data)
     ds.StudyDate = dt.strftime("%Y%m%d")
     ds.StudyTime = dt.strftime("%H%M%S")
 
@@ -105,3 +116,4 @@ def convert2dicom(path, out_path, file_name):
 
     # Save
     ds.save_as(f"{out_path}/{file_name}.dcm")
+    return study_instanceUID, name
