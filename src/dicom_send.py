@@ -1,6 +1,6 @@
+from pydicom import dcmread
 from pynetdicom import AE
 from pynetdicom.sop_class import DigitalXRayImageStorageForPresentation
-from pydicom import dcmread
 
 
 def dicom_send(pacs_ip, pacs_port, pacs_ae_title, dicom_file):
@@ -8,19 +8,13 @@ def dicom_send(pacs_ip, pacs_port, pacs_ae_title, dicom_file):
     ae = AE()
 
     # Add storage presentation context
-    ae.add_requested_context(
-        DigitalXRayImageStorageForPresentation
-    )
+    ae.add_requested_context(DigitalXRayImageStorageForPresentation)
 
     # Read DICOM
     ds = dcmread(dicom_file)
 
     # Connect to PACS
-    assoc = ae.associate(
-        pacs_ip,
-        pacs_port,
-        ae_title=pacs_ae_title
-    )
+    assoc = ae.associate(pacs_ip, pacs_port, ae_title=pacs_ae_title)
 
     success = True
     if assoc.is_established:
@@ -35,4 +29,3 @@ def dicom_send(pacs_ip, pacs_port, pacs_ae_title, dicom_file):
         print("Could not connect to PACS")
         success = False
     return success
-

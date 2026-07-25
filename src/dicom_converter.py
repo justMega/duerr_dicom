@@ -1,13 +1,14 @@
+import datetime
+
 import numpy as np
+from PIL import Image
 from pydicom import Dataset, FileDataset
 from pydicom.uid import (
+    DigitalXRayImageStorageForPresentation,
     ExplicitVRLittleEndian,
     SecondaryCaptureImageStorage,
     generate_uid,
-    DigitalXRayImageStorageForPresentation
 )
-import datetime
-from PIL import Image
 
 
 def get_meta_data(path, file_name):
@@ -25,13 +26,17 @@ def get_meta_data(path, file_name):
                 current_dict[tmp[0]] = tmp[1]
     return meta_data
 
+
 def get_datetime(meta_data):
     return datetime.datetime.strptime(
-        meta_data["ImageUserData"]["ImgCreateDateTimeString"].replace(". ", "."), "%d.%m.%Y %H:%M:%S"
+        meta_data["ImageUserData"]["ImgCreateDateTimeString"]
+        .replace(". ", ".")
+        .replace("/", "."),
+        "%d.%m.%Y %H:%M:%S",
     )
- 
 
-def convert2dicom(path, out_path, file_name, meta_data, study_instanceUID= None):
+
+def convert2dicom(path, out_path, file_name, meta_data, study_instanceUID=None):
     # pprint.pprint(meta_data)
     # pprint.pprint(meta_data["ImageOperations"])
 

@@ -5,3 +5,7 @@ example/
 __pycache__/
 .venv/
 converted.txt
+
+# Added by cargo
+
+/target
