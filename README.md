@@ -21,6 +21,19 @@ The converter follows the same approach by assigning images from the same patien
 
 The goal of this application is to make images produced by Vet-Exam Plus compatible with standard medical imaging systems by converting them into the DICOM format, allowing them to be stored, viewed, and managed using DICOM-compatible software such as PACS systems.
 
+## Configuration
+
+The folder where Vet-Exem Plus saves exported images can be changed in `settings.json`.
+
+Open `settings.json` and update the image export path:
+
+```json
+{
+  "imagePath": "C:/path/to/VetExem/export/folder"
+}
+```
+You will also have to create `converted.txt` file before running the app.
+
 ## Disclaimer
 
 This software is provided **as-is** and should be used at your own risk.
