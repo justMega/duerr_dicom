@@ -9,6 +9,8 @@ from pydicom.uid import (
     SecondaryCaptureImageStorage,
     generate_uid,
 )
+from scipy.ndimage import median_filter
+from skimage.exposure import rescale_intensity
 
 
 def get_meta_data(path, file_name):
@@ -36,13 +38,114 @@ def get_datetime(meta_data):
     )
 
 
+def gauss_fd(
+    img,
+    al0=0.0,
+    al1=1.0,
+    ftp=4.0,
+    ah0=0.25,
+    ah1=1.0,
+    fhp=0.125,
+):
+    """
+    Approximation of Dürr Vet-Exam Gauss_FD filter.
+
+    Parameters:
+        al0 : low frequency offset
+        al1 : low frequency amplitude
+        ftp : low frequency transition frequency
+
+        ah0 : high frequency offset
+        ah1 : high frequency amplitude
+        fhp : high pass frequency
+
+    """
+
+    img = img.astype(np.float32)
+
+    h, w = img.shape
+
+    # Fourier transform
+    F = np.fft.fftshift(np.fft.fft2(img))
+
+    # normalized frequency coordinates
+    # fy = np.fft.fftshift(np.fft.fftfreq(h))
+    # fx = np.fft.fftshift(np.fft.fftfreq(w))
+    # FX, FY = np.meshgrid(fx, fy)
+
+    # radial frequency
+    # f = np.sqrt(FX**2 + FY**2)
+    u = np.arange(w) - w // 2
+    v = np.arange(h) - h // 2
+    U, V = np.meshgrid(u, v)
+    f = np.sqrt(U**2 + V**2)
+    # f /= f.max()
+
+    # avoid divide by zero
+    ftp = max(ftp, 1e-9)
+    fhp = max(fhp, 1e-9)
+
+    G_low = np.exp(-((f / ftp) ** 2))
+    G_high = np.exp(-((f / fhp) ** 2))
+
+    A_l = al0 + (al1 - al0) * G_low
+    A_h = ah0 + (ah1 - ah0) * (1 - G_high)
+
+    H = 1 + (A_h - A_l)
+    H /= H[h // 2, w // 2]
+    # H = 1 + (H - dc)
+    # H = 1 + (ah1 - ah0) * (1 - np.exp(-((f / fhp) ** 2)))
+    filtered = np.real(np.fft.ifft2(np.fft.ifftshift(F * H)))
+    filtered = rescale_intensity(filtered, in_range="image", out_range=(0, 65535))
+    return filtered.astype(np.uint16)
+
+
+def apply_img_operations(img, operation):
+    if "Invert" in operation:
+        return np.max(img) - img
+    if "DDIP" not in operation:
+        return img
+    operation = operation.split(" ")[4:]
+    operation = " ".join(operation)
+    operation = operation.replace("ddipparam=", "")
+    operation = operation.replace('"', "")
+    op_type, params = operation.split(" ", 1)
+    op_type = op_type.replace("Type=", "")
+    params = params.split(" ")
+    match op_type:
+        case "Gauss_FD2" | "Gauss_FD":
+            print("GAUSS")
+            vm = dict()
+            for p in params:
+                pp = p.split("=")
+                vm[pp[0]] = float(pp[1])
+            print(vm)
+            img = gauss_fd(img, **vm)
+        case "HISTOGRAMM_EQUAL3":
+            img = img.astype(np.float32)
+            mask = img > 0
+            values = img[mask]
+            p_low = np.percentile(values, 0.5)
+            p_high = np.percentile(values, 99.5)
+            img = (img - p_low) / (p_high - p_low)
+            img = np.clip(img, 0, 1)
+            img = (img * 65535).astype(np.uint16)
+        case "Median_Filter":
+            size = params[0].replace("size=", "")
+            img = median_filter(img, size=int(size))
+    return img
+
+
 def convert2dicom(path, out_path, file_name, meta_data, study_instanceUID=None):
     # pprint.pprint(meta_data)
     # pprint.pprint(meta_data["ImageOperations"])
 
     image = Image.open(f"{path}/{file_name}.XTF")
     image = np.array(image)
-    image = np.max(image) - image
+
+    if "ImageOperations" in meta_data:
+        for op, value in meta_data["ImageOperations"].items():
+            image = apply_img_operations(image, value)
 
     # File Meta Information
     file_meta = Dataset()

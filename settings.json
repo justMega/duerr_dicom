@@ -1,6 +1,6 @@
 {
     "paths": {
-        "search_path": "ref",
+        "search_path": "in",
         "out_path": "out",
         "converted_name": "converted.txt"
     },

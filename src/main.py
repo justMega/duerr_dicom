@@ -58,6 +58,7 @@ with open(f"./{converted_name}", "r+") as f:
             if pat_name not in names2data:
                 names2data[pat_name] = []
             names2data[pat_name].append([timestamp, study_instanceUID])
+
 exit()
 for file in os.listdir(out_path):
     print("sending", file)

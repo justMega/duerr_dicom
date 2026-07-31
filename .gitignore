@@ -5,6 +5,9 @@ example/
 __pycache__/
 .venv/
 converted.txt
+Downloads.7z
+in/
+metadata/
 
 # Added by cargo
 
