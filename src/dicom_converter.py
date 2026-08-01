@@ -114,12 +114,12 @@ def apply_img_operations(img, operation):
     params = params.split(" ")
     match op_type:
         case "Gauss_FD2" | "Gauss_FD":
-            print("GAUSS")
+            # print("GAUSS")
             vm = dict()
             for p in params:
                 pp = p.split("=")
                 vm[pp[0]] = float(pp[1])
-            print(vm)
+            # print(vm)
             img = gauss_fd(img, **vm)
         case "HISTOGRAMM_EQUAL3":
             img = img.astype(np.float32)
@@ -207,8 +207,8 @@ def convert2dicom(path, out_path, file_name, meta_data, study_instanceUID=None):
 
     # Windowing
     pixels = image[image > 0]
-    low = np.percentile(pixels, 1)
-    high = np.percentile(pixels, 99)
+    low = np.percentile(pixels, 10)
+    high = np.percentile(pixels, 90)
     window_center = (high + low) / 2
     window_width = high - low
 
